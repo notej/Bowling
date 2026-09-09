@@ -6,21 +6,12 @@
 
 class ApiClient {
     constructor() {
-        // Auto-detect API URL - works for local dev and deployed
-        this.baseUrl = this.detectApiUrl();
+        // Use relative URL - works on localhost AND deployed
+        this.baseUrl = '/api';
         this.token = localStorage.getItem('bowltrack_token');
         this.ws = null;
         this.wsReconnectInterval = null;
         this.onWsMessage = null;
-    }
-
-    detectApiUrl() {
-        // If running on localhost, use localhost:3000
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            return 'http://localhost:3000/api';
-        }
-        // Otherwise assume API is on same origin
-        return '/api';
     }
 
     getHeaders() {
@@ -111,12 +102,11 @@ class ApiClient {
     connectWebSocket() {
         if (this.ws || !this.token) return;
 
-        const wsUrl = this.baseUrl.replace('http', 'ws').replace('/api', '/ws');
+        const wsUrl = window.location.origin.replace('http', 'ws') + '/ws';
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
             console.log('WebSocket connected');
-            // Send ping every 30s to keep alive
             this.wsPingInterval = setInterval(() => {
                 if (this.ws.readyState === 1) {
                     this.ws.send(JSON.stringify({ type: 'PING' }));
@@ -139,7 +129,6 @@ class ApiClient {
             console.log('WebSocket disconnected');
             this.ws = null;
             clearInterval(this.wsPingInterval);
-            // Reconnect after 5s
             setTimeout(() => this.connectWebSocket(), 5000);
         };
 
